@@ -1,0 +1,12 @@
+#title {
+  text-align: center;
+}
+
+#yLabel {
+  transform: rotate(90deg);
+  transform-origin: left top 0;
+  float: left;
+  margin-left: 10px;
+}
+
+#xLabel {}
