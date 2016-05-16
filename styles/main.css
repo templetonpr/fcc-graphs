@@ -1,12 +1,27 @@
-#title {
-  text-align: center;
-}
-
 #yLabel {
-  transform: rotate(90deg);
-  transform-origin: left top 0;
-  float: left;
-  margin-left: 10px;
+  transform: rotate(-90deg);
+  transform-origin: top right 0;
+  float: right;
+  margin-top: 20px;
+  white-space: pre;
 }
 
-#xLabel {}
+#graph {
+    min-height: 500px;
+}
+
+.rotatedText {
+    transform: rotate(60deg) translateX(25px) translateY(-10px);
+    transform-origin: top left 0;
+}
+
+#tooltip {
+    position: absolute;
+    padding: 5px;
+    background-color: rgba(176, 196, 222, 1);
+    border: 1px solid #222;
+    border-radius: 5px;
+    visibility: hidden;
+    pointer-events: none;
+    box-shadow: 2px 2px 2px black;
+}

@@ -12,13 +12,14 @@ function Graph(url, title, xLabel, yLabel, desc, type) {
   this.data = [];
 
   this.render = function() {
-    var temp = "";
-    temp += "<h2 id='title'>"+thisGraph.title+"</h2><br>";
-    temp += "<p id='yLabel'>"+thisGraph.yLabel+"</p>";
-    temp += "<div id='graph'></div>";
-    temp += "<p id='xLabel'>"+thisGraph.xLabel+"</p><br>";
-    temp += "<div id='desc'>"+thisGraph.desc+"</div>";
-    $("#graphContainer").html(temp);
+    $("#title").text(thisGraph.title);
+    $("#xLabel").text(thisGraph.xLabel);
+    $("#yLabel").text(thisGraph.yLabel);
+    $("#desc").html(thisGraph.desc);
+    $("#graph").html("");
+    if (thisGraph.type == 'bar') {
+      drawBarGraph(thisGraph.data);
+    }
   };
 
   $.getJSON(url)
@@ -27,7 +28,7 @@ function Graph(url, title, xLabel, yLabel, desc, type) {
     if (thisGraph.url == "https://raw.githubusercontent.com/FreeCodeCamp/ProjectReferenceData/master/GDP-data.json") {
       // reformat GDP data
       thisGraph.data = data.data.map(function(val){
-        return {quarter: val[0], value: val[1]};
+        return {xVal: val[0], yVal: val[1]};
       });
 
     } else if (thisGraph.url == "https://raw.githubusercontent.com/FreeCodeCamp/ProjectReferenceData/master/global-temperature.json") {
@@ -85,3 +86,109 @@ $(function(){
     heatMap.render();
   });
 });
+
+function drawBarGraph(graphData) {
+  // draw bar graph
+  // expects data to be in the form: [{"xVal": xVal, "yVal": yVal},...]
+
+  // Color variables
+  var backgroundColor = '#fff';
+  var barColor = 'lightblue'; // @todo pick a better color (and use hex code)
+  var barOutline = 'lightBlue'; // @todo pick a better color (and use hex code)
+  var barOutlineWidth = 1;
+  var selectedBarColor = 'blue'; // @todo pick a better color (and use hex code)
+
+  var margin = {top: 30, right: 10, bottom: 30, left: 80};
+
+  // Set up graph and bar sizes 
+  var graphWidth = $("#graph").width() - margin.left - margin.right;
+  var graphHeight = $("#graph").height() - margin.top - margin.bottom;
+  var barWidth = graphWidth / graphData.length;
+  var barOffset = 2;
+
+  // Massage the graph data into an easier to draw format
+  // @todo change this to play more nicely with  bar graph data objects
+  var yVals = [];
+  var xVals = [];
+  for (var i = 0; i < graphData.length; i++) {
+    yVals.push(graphData[i].yVal);
+    xVals.push(graphData[i].xVal);
+  }
+
+  var yScale = d3.scale.linear()
+    .domain([0, d3.max(yVals)])
+    .range([0, graphHeight]);
+
+  var xScale = d3.scale.ordinal()
+    .domain(d3.range(0, graphData.length))
+    .rangeBands([0, graphWidth]);
+
+  // Draw tooltip div
+  d3.select('body').append('div')
+    .attr('id', 'tooltip');
+
+  // Draw the graph
+  d3.select("#graph").append('svg')
+    .attr('width', graphWidth + margin.left + margin.right)
+    .attr('height', graphHeight + margin.top + margin.bottom + 50)
+    .style('background', backgroundColor)
+    .append('g')
+    .attr('transform', 'translate(' + margin.left + ', ' + margin.top + ')')
+    .selectAll('rect').data(yVals)
+    .enter().append('rect')
+    .style({'fill': barColor, 'stroke': barOutline, 'stroke-width': barOutlineWidth})
+    .attr('width', xScale.rangeBand())
+    .attr('height', function(data, i) {return yScale(data);})
+    .attr('x', function(data, i) {return xScale(i);})
+    .attr('y', function(data) {return graphHeight - yScale(data);})
+
+    .on('mouseover', function(data) {
+      d3.select(this).style('fill', selectedBarColor);
+
+      // show tooltip
+      d3.select('#tooltip')
+        .style('top', (event.pageY - 10) + 'px')
+        .style('left', (event.pageX + 10) + 'px')
+        .style('visibility', 'visible')
+        .html("<p>GDP: $" + data + " Billion</p><p>Quarter:" + /* Quarter data goes here */ + "</p>");
+
+    }).on('mouseout', function(data){
+      d3.select(this).style('fill', barColor);
+      // hide tooltip
+      d3.select('#tooltip').style('visibility', 'hidden');
+    });
+
+  // Vertical guide
+  var verticalGuideScale = d3.scale.linear()
+    .domain([0, d3.max(yVals)])
+    .range([graphHeight, 0]);
+
+  var vAxis = d3.svg.axis()
+    .scale(verticalGuideScale)
+    .orient('left')
+    .ticks(16)
+    .tickFormat(function(i){return "$ " + i + " B"});
+
+  var verticalGuide = d3.select('svg').append('g');
+  vAxis(verticalGuide);
+  verticalGuide.attr('transform', 'translate(' + margin.left + ', ' + margin.top + ')');
+  verticalGuide.selectAll('path').style({fill: 'none', stroke: "#000"});
+  verticalGuide.selectAll('line').style({stroke: "#000"});
+
+  // Horizontal Guide
+  var horizontalGuideScale = d3.scale.ordinal()
+    .domain(d3.range(0, graphData.length, 6))
+    .rangeRoundBands([0, graphWidth]);
+
+  var hAxis = d3.svg.axis()
+    .scale(horizontalGuideScale)
+    .orient('bottom')
+    .tickFormat(function(i){ return xVals[i].split("-")[0];})
+
+  var horizontalGuide = d3.select('svg').append('g');
+  hAxis(horizontalGuide);
+  horizontalGuide.attr('transform', 'translate(' + margin.left + ',' + (graphHeight + margin.top) + ')');
+  horizontalGuide.selectAll('path').style({fill: 'none', stroke: '#000'});
+  horizontalGuide.selectAll('line').style({stroke: '#000'});
+  horizontalGuide.selectAll('text').attr('class', 'rotatedText');
+}
